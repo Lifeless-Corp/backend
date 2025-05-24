@@ -46,8 +46,7 @@ def main():
 
         # Index all XML files in the directory with smaller batch size
         print(f"Starting to index XML files from: {XML_DIRECTORY}")
-        index_pmc_xml_directory(es_client, ES_INDEX,
-                                XML_DIRECTORY, batch_size=25)
+        index_pmc_xml_directory(es_client, ES_INDEX, XML_DIRECTORY, batch_size=500)
 
         # Get final stats
         from utils.es_utils import get_index_stats

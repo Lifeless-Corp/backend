@@ -2,17 +2,11 @@ import xml.etree.ElementTree as ET
 import re
 from datetime import datetime
 from typing import Dict, List, Optional
-import os
 
 
 class PMCXMLParser:
     def __init__(self):
-        # Focus on sections that matter for search
-        self.important_sections = {
-            'introduction', 'background', 'methods', 'methodology', 'materials_and_methods',
-            'results', 'findings', 'discussion', 'conclusion', 'conclusions',
-            'summary', 'abstract', 'objective', 'objectives'
-        }
+        pass
 
     def parse_xml_file(self, file_path: str) -> Optional[Dict]:
         """Parse single PMC XML file - optimized for search"""
@@ -25,12 +19,10 @@ class PMCXMLParser:
             pmcid = self._extract_pmcid(root)
             pmid = self._extract_pmid(root)
 
-            # DOI is most important - skip if missing
             if not doi and not pmcid and not pmid:
                 print(f"Skipping {file_path}: No valid identifiers found")
                 return None
 
-            # Extract core content
             title = self._extract_title(root)
             if not title:
                 print(f"Skipping {file_path}: No title found")
@@ -54,8 +46,6 @@ class PMCXMLParser:
                 'article_type': self._extract_article_type(root),
                 'keywords': self._extract_keywords(root),
 
-                # Important sections only
-                'sections': self._extract_important_sections(root),
 
                 # Processing metadata
                 'processed_at': datetime.now().isoformat()
@@ -100,42 +90,32 @@ class PMCXMLParser:
                     sur = surname.text.strip() if surname is not None and surname.text else ""
                     full_name = f"{given} {sur}".strip()
 
-                    if full_name:  # Only add if we have a name
+                    if full_name:
                         author = {'full_name': full_name}
-
-                        # Add ORCID if available
                         orcid_elem = contrib.find(
                             './/contrib-id[@contrib-id-type="orcid"]')
                         if orcid_elem is not None and orcid_elem.text:
                             author['orcid'] = orcid_elem.text.strip()
-
                         authors.append(author)
-
         return authors
 
     def _extract_journal(self, root) -> Dict:
         journal = {}
-
-        # Journal title is essential
         journal_title = root.find('.//journal-title')
         if journal_title is not None and journal_title.text:
             journal['title'] = journal_title.text.strip()
         else:
             journal['title'] = "Unknown Journal"
 
-        # ISSN if available
         issn = root.find('.//issn')
         if issn is not None and issn.text:
             journal['issn'] = issn.text.strip()
-
         return journal
 
     def _extract_publication_date(self, root) -> Optional[str]:
-        # Try different date elements
         pub_date = (root.find('.//pub-date[@date-type="pub"]') or
                     root.find('.//pub-date[@pub-type="epub"]') or
                     root.find('.//pub-date'))
-
         if pub_date is not None:
             return self._parse_date(pub_date)
         return None
@@ -150,23 +130,16 @@ class PMCXMLParser:
                 year = year_elem.text.strip()
                 month = month_elem.text.strip() if month_elem is not None and month_elem.text else "01"
                 day = day_elem.text.strip() if day_elem is not None and day_elem.text else "01"
-
-                # Validate and format
                 try:
                     month = month.zfill(2)
                     day = day.zfill(2)
                     date_str = f"{year}-{month}-{day}"
-
-                    # Basic validation
-                    from datetime import datetime
                     datetime.strptime(date_str, '%Y-%m-%d')
                     return date_str
                 except:
-                    return f"{year}-01-01"  # Fallback to year only
-
+                    return f"{year}-01-01"
         except Exception:
             pass
-
         return None
 
     def _extract_article_type(self, root) -> str:
@@ -178,15 +151,12 @@ class PMCXMLParser:
 
     def _extract_keywords(self, root) -> List[str]:
         keywords = []
-
-        # Try different keyword locations
         for kwd_group in root.findall('.//kwd-group'):
             for kwd in kwd_group.findall('.//kwd'):
                 if kwd.text and kwd.text.strip():
                     keyword = kwd.text.strip()
-                    if keyword not in keywords:  # Avoid duplicates
+                    if keyword not in keywords:
                         keywords.append(keyword)
-
         return keywords
 
     def _extract_abstract(self, root) -> str:
@@ -196,88 +166,35 @@ class PMCXMLParser:
             return self._clean_text(abstract_text)
         return ""
 
-    def _extract_important_sections(self, root) -> Dict[str, str]:
-        """Extract only sections that are important for search"""
-        sections = {}
-        body_elem = root.find('.//body')
-
-        if body_elem is not None:
-            for sec in body_elem.findall('.//sec'):
-                title_elem = sec.find('.//title')
-                if title_elem is not None and title_elem.text:
-                    section_title = self._clean_text(title_elem.text)
-
-                    # Normalize section title to check if it's important
-                    normalized_title = re.sub(
-                        r'[^a-zA-Z0-9\s]', '', section_title.lower())
-                    normalized_title = re.sub(
-                        r'\s+', '_', normalized_title).strip('_')
-
-                    # Check if this section is important
-                    if any(important in normalized_title for important in self.important_sections):
-                        section_content = self._extract_text_content(sec)
-                        if section_content:
-                            # Use a clean key name
-                            # Limit key length
-                            section_key = normalized_title[:50]
-                            sections[section_key] = self._clean_text(
-                                section_content)
-
-        return sections
-
     def _extract_full_text(self, root) -> str:
-        """Extract complete searchable text"""
+        """Extract text content ONLY from the body of the article."""
         text_parts = []
-
-        # Add abstract
-        abstract = self._extract_abstract(root)
-        if abstract:
-            text_parts.append(abstract)
-
-        # Add body content
         body_elem = root.find('.//body')
         if body_elem is not None:
             body_text = self._extract_text_content(body_elem)
             if body_text:
                 text_parts.append(self._clean_text(body_text))
-
         return " ".join(text_parts)
 
+
     def _extract_text_content(self, element) -> str:
-        """Extract all text content from an element"""
         if element is None:
             return ""
-
         text_parts = []
-
-        # Add element's own text
         if element.text:
             text_parts.append(element.text)
-
-        # Recursively add children's text
         for child in element:
             child_text = self._extract_text_content(child)
             if child_text:
                 text_parts.append(child_text)
-
-            # Add tail text
             if child.tail:
                 text_parts.append(child.tail)
-
         return " ".join(text_parts)
 
     def _clean_text(self, text: str) -> str:
-        """Clean and normalize text"""
         if not text:
             return ""
-
-        # Remove control characters
         text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
-
-        # Normalize whitespace
         text = re.sub(r'\s+', ' ', text)
-
-        # Remove excessive punctuation
         text = re.sub(r'[.]{3,}', '...', text)
-
         return text.strip()
