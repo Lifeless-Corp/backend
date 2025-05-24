@@ -28,6 +28,8 @@ class LLMRequest(BaseModel):
 class LLMService:
     """Service for interacting with different LLM providers"""
 
+
+
     def __init__(self):
         # Ollama API
         self.ollama_api_url = os.getenv(
@@ -41,6 +43,18 @@ class LLMService:
                 "description": "Qwen 0.5B - Small model for local use"
             }
         }
+
+    async def summarize_articles(self, articles: list) -> str:
+        """
+        Gabungkan judul dan abstrak dari top-10 artikel, lalu minta LLM membuat ringkasan.
+        """
+        context = "\n\n".join(
+            f"Title: {a['title']}\nAbstract: {a.get('abstract', '')}" for a in articles[:10]
+        )
+        prompt = f"Berikan ringkasan dari artikel berikut:\n{context}\n\nSummary:"
+        request = LLMRequest(prompt=prompt, temperature=0.7, max_tokens=300)
+        response = await self.generate(request)
+        return response.text
 
     async def list_models(self) -> List[Dict[str, Any]]:
         """Return list of available models with metadata"""
