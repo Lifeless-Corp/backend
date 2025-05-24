@@ -4,8 +4,10 @@ from typing import List, Dict, Any
 import os
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+from llm_routes import router as llm_router
 
-app = FastAPI()
+app = FastAPI(title="Organa API",
+              description="API for Organa PubMed search with LLM integration")
 
 app.add_middleware(
     CORSMiddleware,
@@ -17,6 +19,9 @@ app.add_middleware(
 
 # Load environment variables
 load_dotenv()
+
+# Include LLM router
+app.include_router(llm_router)
 
 # Elasticsearch connection
 ES_HOST = os.getenv("ELASTICSEARCH_HOST", "localhost")
