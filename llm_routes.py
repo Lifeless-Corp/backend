@@ -38,12 +38,12 @@ async def generate_text(request: LLMRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/llm/summarize")
+@router.post("/summarize")
 async def summarize_top_articles(articles: list = Body(...)):
     """
     Summarize top articles using LLM.
     """
-    summary = llm_service.summarize_articles(articles)
+    summary = await llm_service.summarize_articles(articles)
     return {"summary": summary}
 
 @router.post("/analyze", response_model=LLMQueryResult)
