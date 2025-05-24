@@ -25,9 +25,29 @@ services:
       - elasticsearch
     networks:
       - elastic
+      
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - elastic
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              count: all
+              # Remove the GPU related settings if you don't have a GPU
 
 volumes:
   esdata:
+    driver: local
+  ollama_data:
     driver: local
 
 networks:
