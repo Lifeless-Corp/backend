@@ -208,7 +208,7 @@ def search_pmc_documents(
         results = []
         for hit in hits:
             result = hit["_source"]
-            result["_score"] = hit["_score"]
+            result["score"] = hit["_score"]
             if "highlight" in hit:
                 result["_highlights"] = hit["highlight"]
             results.append(result)
