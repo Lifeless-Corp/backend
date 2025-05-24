@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Body
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel, Field
 
@@ -38,6 +38,13 @@ async def generate_text(request: LLMRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.post("/llm/summarize")
+async def summarize_top_articles(articles: list = Body(...)):
+    """
+    Summarize top articles using LLM.
+    """
+    summary = llm_service.summarize_articles(articles)
+    return {"summary": summary}
 
 @router.post("/analyze", response_model=LLMQueryResult)
 async def analyze_documents(query: DocumentQuery):
