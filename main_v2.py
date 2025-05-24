@@ -199,64 +199,6 @@ async def get_statistics():
         raise HTTPException(status_code=500, detail=f"Error getting statistics: {str(e)}")
 
 
-@app.get("/articles/types", tags=["Metadata"])
-async def get_article_types():
-    """
-    Get all available article types.
-    """
-    try:
-        agg_query = {
-            "size": 0,
-            "aggs": {
-                "article_types": {
-                    "terms": {
-                        "field": "article_type",
-                        "size": 50
-                    }
-                }
-            }
-        }
-        
-        response = es_client.search(index=ES_INDEX, body=agg_query)
-        buckets = response["aggregations"]["article_types"]["buckets"]
-        
-        types = [{"type": bucket["key"], "count": bucket["doc_count"]} for bucket in buckets]
-        
-        return {"article_types": types}
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting article types: {str(e)}")
-
-
-@app.get("/articles/journals", tags=["Metadata"])
-async def get_journals():
-    """
-    Get all available journals.
-    """
-    try:
-        agg_query = {
-            "size": 0,
-            "aggs": {
-                "journals": {
-                    "terms": {
-                        "field": "journal.title",
-                        "size": 100
-                    }
-                }
-            }
-        }
-        
-        response = es_client.search(index=ES_INDEX, body=agg_query)
-        buckets = response["aggregations"]["journals"]["buckets"]
-        
-        journals = [{"journal": bucket["key"], "count": bucket["doc_count"]} for bucket in buckets]
-        
-        return {"journals": journals}
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting journals: {str(e)}")
-
-
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
