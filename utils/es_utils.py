@@ -65,7 +65,7 @@ def create_pmc_index(es: Elasticsearch, index_name: str) -> bool:
         "settings": {
             "number_of_shards": 1, "number_of_replicas": 0,
             "index": {
-                "refresh_interval": "-1",
+                "refresh_interval": "30s",
                 "max_result_window": 50000
             },
             "analysis": {
